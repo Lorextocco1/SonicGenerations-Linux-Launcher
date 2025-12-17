@@ -1,177 +1,150 @@
 using System;
 using System.Windows.Forms;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Text;
 using System.Diagnostics;
 using System.IO;
 
 namespace SonicLauncher
 {
-    // --- CLASSE BOTTONE "SONIC STYLE" (Trasparente e Giallo) ---
-    public class SonicButton : Label
+    // Classe per i bottoni trasparenti
+    public class TransparentButton : Button
     {
-        private bool isHovered = false;
-
-        public SonicButton()
+        public TransparentButton()
         {
             this.SetStyle(ControlStyles.SupportsTransparentBackColor, true);
             this.BackColor = Color.Transparent;
-            this.DoubleBuffered = true; 
-            this.Cursor = Cursors.Hand;
-            this.Font = new Font("Arial Black", 24, FontStyle.Italic);
-            this.AutoSize = false;
-            this.TextAlign = ContentAlignment.MiddleCenter;
-        }
-
-        protected override void OnMouseEnter(EventArgs e) { isHovered = true; Invalidate(); base.OnMouseEnter(e); }
-        protected override void OnMouseLeave(EventArgs e) { isHovered = false; Invalidate(); base.OnMouseLeave(e); }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            g.TextRenderingHint = TextRenderingHint.AntiAlias; 
-            g.SmoothingMode = SmoothingMode.HighQuality;
-
-            string text = this.Text;
-            Font font = this.Font;
-
-            SizeF textSize = g.MeasureString(text, font);
-            float x = (this.Width - textSize.Width) / 2;
-            float y = (this.Height - textSize.Height) / 2;
-
-            // COLORI UFFICIALI SONIC
-            Color fillColor = ColorTranslator.FromHtml("#FFD700"); // Giallo Oro
-            Color outlineColor = isHovered ? ColorTranslator.FromHtml("#00BFFF") : ColorTranslator.FromHtml("#003399"); // Blu Elettrico
-            int offset = isHovered ? 3 : 2; 
-
-            // 1. DISEGNA IL BORDO BLU
-            using (Brush outlineBrush = new SolidBrush(outlineColor))
-            {
-                g.DrawString(text, font, outlineBrush, x - offset, y);
-                g.DrawString(text, font, outlineBrush, x + offset, y);
-                g.DrawString(text, font, outlineBrush, x, y - offset);
-                g.DrawString(text, font, outlineBrush, x, y + offset);
-                g.DrawString(text, font, outlineBrush, x - offset, y - offset);
-                g.DrawString(text, font, outlineBrush, x + offset, y + offset);
-                g.DrawString(text, font, outlineBrush, x - offset, y + offset);
-                g.DrawString(text, font, outlineBrush, x + offset, y - offset);
-            }
-
-            // 2. DISEGNA IL TESTO GIALLO
-            using (Brush fillBrush = new SolidBrush(fillColor))
-            {
-                g.DrawString(text, font, fillBrush, x, y);
-            }
         }
     }
-    // --------------------------------------------------
 
     public class MainForm : Form
     {
-        private PictureBox logoBox;
-        private SonicButton btnPlay;
-        private SonicButton btnConfig;
-        private SonicButton btnExit;
+        private Button btnPlay;
+        private Button btnConfig;
+        private Button btnMods;
+        private Button btnExit;
+
+        // Colori e stile (Blu Sonic)
+        Color sonicBlue = Color.FromArgb(0, 100, 255);
+        Color sonicDark = Color.FromArgb(0, 0, 50);
+        Color glassEffect = Color.FromArgb(180, 0, 20, 60);
+
+        int leftMargin = 50; 
 
         public MainForm()
         {
-            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            // --- 0. FIX CRITICO: INIEZIONE REGISTRO (STEAMFAKE) ---
+            // Questo viene eseguito PRIMA di mostrare la finestra
+            try {
+                string regFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "steamfake.reg");
+                if (File.Exists(regFile)) {
+                    // Esegue regedit in modalità silenziosa (/s)
+                    Process.Start("regedit", $"/s \"{regFile}\"");
+                }
+            } catch {
+                // Se fallisce, continuiamo lo stesso per non bloccare il launcher
+            }
 
-            // 1. SETUP FINESTRA
-            this.Text = "Sonic Generations - Speed Launcher";
-            this.Size = new Size(960, 540);
+            // --- 1. SETUP FINESTRA ---
+            this.Text = "Sonic Generations - Linux Launcher";
+            this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
-            this.BackColor = Color.FromArgb(20, 40, 80); 
+            this.BackColor = sonicDark;
 
+            // Icona del gioco
             try {
-                string gameExe = Path.Combine(baseDir, "SonicGenerations.exe");
+                string gameExe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SonicGenerations.exe");
                 if (File.Exists(gameExe)) this.Icon = Icon.ExtractAssociatedIcon(gameExe);
             } catch {}
 
-            // 2. SFONDO WALLPAPER
-            string wallPath = "";
-            if (File.Exists(Path.Combine(baseDir, "wallpaper.jpg"))) 
-                wallPath = Path.Combine(baseDir, "wallpaper.jpg");
-            else if (File.Exists(Path.Combine(baseDir, "wallpaper.png")))
-                wallPath = Path.Combine(baseDir, "wallpaper.png");
-
-            if (!string.IsNullOrEmpty(wallPath)) {
+            // Sfondo
+            string wallPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wallpaper.jpg");
+            if (File.Exists(wallPath)) {
                 this.BackgroundImage = Image.FromFile(wallPath);
                 this.BackgroundImageLayout = ImageLayout.Stretch;
             }
 
-            // 3. LOGO
-            logoBox = new PictureBox();
-            logoBox.Size = new Size(500, 180);
-            logoBox.Location = new Point((this.ClientSize.Width - 500) / 2, 20);
-            logoBox.SizeMode = PictureBoxSizeMode.Zoom;
-            logoBox.BackColor = Color.Transparent; 
+            // --- 2. BOTTONI ---
+            int startY = 250;
+            int spacing = 70;
 
-            string logoPath = Path.Combine(baseDir, "logo.png");
-            if (File.Exists(logoPath)) {
-                try { logoBox.Image = Image.FromFile(logoPath); } catch { }
-            }
-            this.Controls.Add(logoBox);
-
-            // 4. BOTTONI SONIC
-            int startY = 230;
-            int spacing = 80;
-
+            // Tasto 1: GIOCA
             btnPlay = CreateSonicButton("GIOCA", startY);
             btnPlay.Click += (sender, e) => { 
-                LanciaApp("SonicGenerations.exe"); 
-                this.Close(); 
+                LanciaApp("SonicGenerations.exe");
+                this.Close();
             };
 
-            btnConfig = CreateSonicButton("CONFIGURA", startY + spacing);
+            // Tasto 2: CONFIGURAZIONE (Importante per Sonic)
+            btnConfig = CreateSonicButton("CONFIGURAZIONE GRAFICA", startY + spacing);
             btnConfig.Click += (sender, e) => { 
-                LanciaApp("ConfigurationTool.exe"); 
+                LanciaApp("ConfigurationTool.exe");
             };
 
-            btnExit = CreateSonicButton("ESCI", startY + spacing * 2);
+            // Tasto 3: MOD MANAGER (Se presente)
+            btnMods = CreateSonicButton("HEDGE MOD MANAGER", startY + spacing * 2);
+            btnMods.Click += (sender, e) => { 
+                // Cerca l'eseguibile classico del mod manager
+                if (File.Exists("HedgeModManager.exe")) LanciaApp("HedgeModManager.exe");
+                else MessageBox.Show("HedgeModManager.exe non trovato nella cartella.");
+            };
+
+            // Tasto 4: ESCI
+            btnExit = CreateSonicButton("ESCI", startY + spacing * 3);
             btnExit.Click += (sender, e) => { this.Close(); };
 
-            // --- 5. FIRMA (MARCHIO DI FABBRICA) ---
+            // Firma
             Label footer = new Label();
-            footer.Text = "SONIC CUSTOM LAUNCHER | LOREXTHEGAMER";
-            footer.Font = new Font("Arial", 8, FontStyle.Bold);
-            // *** MODIFICA QUI: Colore Nero Solido per contrasto ***
-            footer.ForeColor = Color.Black; 
+            footer.Text = "SONIC LINUX HUB | LOREXTHEGAMER";
+            footer.Font = new Font("Segoe UI", 8, FontStyle.Bold);
+            footer.ForeColor = Color.White;
             footer.AutoSize = true;
             footer.BackColor = Color.Transparent;
-            
-            // Posizionamento Bottom-Right preciso
-            footer.Location = new Point(this.ClientSize.Width - footer.PreferredWidth - 20, this.ClientSize.Height - 25);
-            
+            footer.Location = new Point(10, this.ClientSize.Height - 25);
             this.Controls.Add(footer);
         }
 
-        private SonicButton CreateSonicButton(string text, int top)
+        // Funzione per creare i bottoni stile Sonic
+        private Button CreateSonicButton(string text, int top)
         {
-            SonicButton btn = new SonicButton();
+            Button btn = new Button();
             btn.Text = text;
-            btn.Size = new Size(350, 70); 
-            btn.Location = new Point((this.ClientSize.Width - 350) / 2, top);
-            this.Controls.Add(btn); 
+            btn.Size = new Size(300, 60);
+            btn.Location = new Point(leftMargin, top);
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.Font = new Font("Segoe UI Black", 14, FontStyle.Bold);
+            btn.ForeColor = Color.White;
+            btn.BackColor = glassEffect;
+            btn.FlatAppearance.BorderColor = Color.White;
+            btn.FlatAppearance.BorderSize = 2;
+            btn.Cursor = Cursors.Hand;
+
+            btn.MouseEnter += (s, e) => { 
+                btn.BackColor = sonicBlue; // Diventa blu Sonic al passaggio
+                btn.ForeColor = Color.Yellow; // Scritta gialla stile anelli
+            };
+            btn.MouseLeave += (s, e) => { 
+                btn.BackColor = glassEffect;
+                btn.ForeColor = Color.White;
+            };
+
+            this.Controls.Add(btn);
             return btn;
         }
 
+        // Funzione di avvio sicuro
         private void LanciaApp(string exeName)
         {
             try {
-                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string fullPath = Path.Combine(baseDir, exeName);
-
+                string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, exeName);
                 if (File.Exists(fullPath)) {
                     ProcessStartInfo startInfo = new ProcessStartInfo();
                     startInfo.FileName = fullPath;
-                    startInfo.WorkingDirectory = baseDir;
+                    startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory;
                     Process.Start(startInfo);
                 } else {
-                    MessageBox.Show("File non trovato: " + exeName, "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("File mancante: " + exeName, "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             } catch (Exception ex) {
                 MessageBox.Show("Errore di avvio: " + ex.Message);
