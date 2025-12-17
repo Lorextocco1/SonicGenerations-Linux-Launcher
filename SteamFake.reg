@@ -1,0 +1,25 @@
+Windows Registry Editor Version 5.00
+
+; --- CHIAVI SEGA (Per il gioco) ---
+[HKEY_LOCAL_MACHINE\SOFTWARE\Sega\Sonic Generations]
+"locale"="en-us"
+"SaveLocation"="Z:\\run\\media\\deck\\SHARE\\SteamLibrary\\steamapps\\common\\SonicGenerations"
+"InstallLocation"="Z:\\run\\media\\deck\\SHARE\\SteamLibrary\\steamapps\\common\\SonicGenerations"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Sega\Sonic Generations]
+"locale"="en-us"
+"SaveLocation"="Z:\\run\\media\\deck\\SHARE\\SteamLibrary\\steamapps\\common\\SonicGenerations"
+"InstallLocation"="Z:\\run\\media\\deck\\SHARE\\SteamLibrary\\steamapps\\common\\SonicGenerations"
+
+; --- CHIAVI STEAM (Per ingannare HedgeModManager) ---
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 71340]
+"InstallLocation"="Z:\\run\\media\\deck\\SHARE\\SteamLibrary\\steamapps\\common\\SonicGenerations"
+"DisplayName"="Sonic Generations"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 71340]
+"InstallLocation"="Z:\\run\\media\\deck\\SHARE\\SteamLibrary\\steamapps\\common\\SonicGenerations"
+"DisplayName"="Sonic Generations"
+
+; --- CHIAVE VALIDAZIONE STEAM ---
+[HKEY_CURRENT_USER\Software\Valve\Steam\Apps\71340]
+"Installed"=dword:00000001
